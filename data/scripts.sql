@@ -86,7 +86,7 @@ ORDER BY decade
  ORDER BY min
 --  Lowest wins with a wswin
 --  "Los Angeles Dodgers" 63 wins
--- Due to the MLB strike there were only 103 -111 games played instead of the normal 162 games
+-- Due to the MLB strike there were only 103 - 111 games played instead of the normal 162 games
 
 SELECT name, MIN(w) as min, wswin, yearid
  FROM teams
@@ -97,6 +97,32 @@ SELECT name, MIN(w) as min, wswin, yearid
 --  "St. Louis Cardinals" 83 wins
 
 
+SELECT t.yearid, name, max_w, wswin
+FROM teams as t
+INNER JOIN 
+    (SELECT yearid, MAX(w) as max_w
+    FROM teams
+    GROUP BY yearid) as s
+ON t.yearid = s.yearid
+GROUP BY t.yearid, max_w, w, wswin, name
+HAVING w = max_w AND t.yearid BETWEEN 1970 AND 2016 AND wswin = 'Y'
 
-
+   
  
+SELECT COUNT(*)
+FROM
+(SELECT t.yearid, name, max_w, wswin
+FROM teams as t
+INNER JOIN 
+    (SELECT yearid, MAX(w) as max_w
+    FROM teams
+    GROUP BY yearid) as s
+ON t.yearid = s.yearid
+GROUP BY t.yearid, max_w, w, wswin, name
+HAVING w = max_w AND t.yearid BETWEEN 1970 AND 2016 AND wswin = 'Y') as s1
+
+
+
+
+
+
