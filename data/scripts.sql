@@ -61,7 +61,8 @@ ORDER BY decade
 --  fitness, equiptment, and roids in the late 90's early 2000's
  
  
- SELECT CONCAT(namefirst,' ', namelast) as name, sb as succesful_stolen_bases, cs as unsuccessful_stolen_bases,
+ SELECT CONCAT(namefirst,' ', namelast) as name, sb as succesful_stolen_bases, 
+ cs as unsuccessful_stolen_bases,
  sb + cs as total_tolen_bases, ROUND(CAST(sb/CAST(sb+cs as float) as numeric),2) as success_rate
  FROM batting as b
  LEFT JOIN people as p
@@ -96,8 +97,7 @@ SELECT name, MIN(w) as min, wswin, yearid
  --  Lowest wins with a wswin
 --  "St. Louis Cardinals" 83 wins
 
-
-SELECT t.yearid, name, max_w, wswin
+WITH subq as (SELECT t.yearid, name, max_w, wswin
 FROM teams as t
 INNER JOIN 
     (SELECT yearid, MAX(w) as max_w
@@ -105,24 +105,150 @@ INNER JOIN
     GROUP BY yearid) as s
 ON t.yearid = s.yearid
 GROUP BY t.yearid, max_w, w, wswin, name
-HAVING w = max_w AND t.yearid BETWEEN 1970 AND 2016 AND wswin = 'Y'
+HAVING w = max_w AND t.yearid BETWEEN 1970 AND 2016 AND wswin = 'Y')
+-- 12 teams have had the best record and won the world series in the same year.
 
+SELECT 100*ROUND(CAST(COUNT(*) as numeric)/CAST(2016-1970 as numeric),2)
+FROM subq
+-- 26% of teams who have the best record also win the world series
    
  
-SELECT COUNT(*)
+
+SELECT team, park, SUM(attendance)/SUM(games) as avg_attend
+FROM homegames
+WHERE year = 2016 and games >= 10
+GROUP BY team, park
+ORDER BY avg_attend DESC
+-- "LAN"	"LOS03"	45719
+-- "SLN"	"STL10"	42524
+-- "TOR"	"TOR02"	41877
+-- "SFN"	"SFO03"	41546
+-- "CHN"	"CHI11"	39906
+
+SELECT team, park, SUM(attendance)/SUM(games) as avg_attend
+FROM homegames
+WHERE year = 2016 and games >= 10
+GROUP BY team, park
+ORDER BY avg_attend 
+-- "TBA"	"STP01"	15878
+-- "OAK"	"OAK01"	18784
+-- "CLE"	"CLE08"	19650
+-- "MIA"	"MIA02"	21405
+-- "CHA"	"CHI12"	21559
+
+
+SELECT *
+FROM awardsmanagers
+
+SELECT *
+FROM managers
+
+
+SELECT CONCAT(namefirst,' ', namelast), t.name, t.lgid 
+FROM awardsmanagers as am1
+CROSS JOIN awardsmanagers as am2
+INNER JOIN people as p
+ON am1.playerid = p.playerid
+INNER JOIN managershalf as mh
+ON p.playerid = mh.playerid
+INNER JOIN teams as t
+ON mh.yearid = t.yearid
+WHERE am1.awardid = 'TSN Manager of the Year' AND t.lgid = 'AL' AND t.lgid = 'NL'
+
+
+-- SELECT t.yearid, CONCAT(namefirst,' ', namelast) as full_name, name, awardid, t.lgid
+-- FROM awardsmanagers as am
+-- INNER JOIN people as p
+-- ON am.playerid = p.playerid
+-- INNER JOIN managershalf as mh
+-- ON p.playerid = mh.playerid
+-- INNER JOIN teams as t
+-- ON mh.teamid = t.teamid
+-- WHERE awardid = 'TSN Manager of the Year' AND t.lgid = 'AL'
+-- GROUP BY t.yearid, full_name, name, awardid, t.lgid
+-- ORDER BY t.yearid DESC
+
+
+
+
+
+
+WITH subq as (SELECT playerid 
+FROM awardsmanagers
+WHERE awardid = 'TSN Manager of the Year' AND yearid > 1985 AND lgid = 'NL' 
+
+INTERSECT
+
+SELECT playerid
+FROM awardsmanagers
+WHERE awardid = 'TSN Manager of the Year' AND yearid > 1985 AND lgid = 'AL'
+ORDER BY playerid)
+
+
+
+
+
+-- SELECT yearid, playerid, lgid
+-- FROM awardsmanagers
+-- WHERE awardid = 'TSN Manager of the Year' AND yearid > 1985 AND lgid = 'NL' 
+
+-- UNION
+
+-- SELECT yearid, playerid, lgid
+-- FROM awardsmanagers
+-- WHERE awardid = 'TSN Manager of the Year' AND yearid > 1985 AND lgid = 'AL'
+-- ORDER BY yearid
+
+
+
+
+
+
+
+WITH subq1 as (SELECT playerid
+FROM awardsmanagers
+WHERE awardid = 'TSN Manager of the Year'),
+
+subq2 as (SELECT playerid 
+FROM awardsmanagers as am
+WHERE lgid = 'AL'),
+
+subq3 as (SELECT playerid 
+FROM awardsmanagers as am
+WHERE lgid = 'NL'),
+
+subq4 as (SELECT yearid, playerid, lgid
 FROM
-(SELECT t.yearid, name, max_w, wswin
-FROM teams as t
-INNER JOIN 
-    (SELECT yearid, MAX(w) as max_w
-    FROM teams
-    GROUP BY yearid) as s
-ON t.yearid = s.yearid
-GROUP BY t.yearid, max_w, w, wswin, name
-HAVING w = max_w AND t.yearid BETWEEN 1970 AND 2016 AND wswin = 'Y') as s1
+(SELECT yearid, am.playerid, lgid
+FROM awardsmanagers as am
+WHERE awardid = 'TSN Manager of the Year' AND am.yearid > 1985 AND am.lgid = 'NL'
+UNION
+SELECT yearid, am.playerid, lgid
+FROM awardsmanagers as am
+WHERE awardid = 'TSN Manager of the Year' AND am.yearid > 1985 AND am.lgid = 'AL') as subq
+ORDER BY playerid)
+
+
+
+SELECT CONCAT(namefirst, ' ', namelast) as full_name, name 
 
 
 
 
 
+WITH subq as (SELECT yearid, am.playerid, lgid
+FROM awardsmanagers as am
+WHERE awardid = 'TSN Manager of the Year' AND am.yearid > 1985 AND am.lgid = 'NL'
+UNION
+SELECT yearid, am.playerid, lgid
+FROM awardsmanagers as am
+WHERE awardid = 'TSN Manager of the Year' AND am.yearid > 1985 AND am.lgid = 'AL')
+
+SELECT playerid, lgid
+FROM subq
+WHERE lgid = 'NL'
+UNION
+SELECT playerid, lgid
+FROM subq
+WHERE lgid = 'AL'
 
