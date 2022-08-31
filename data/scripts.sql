@@ -167,15 +167,31 @@ ORDER BY full_name
 -- "Jim Leyland"	"Detroit Tigers"	    "AL" 
 
 
-WITH subq1 as (SELECT playerid, MAX(hr) as max_hr
-FROM batting as b
-GROUP BY playerid
-ORDER BY MAX(hr) DESC)
+-- WITH subq1 as (SELECT playerid, yearid, teamid, lgid, hr
+-- FROM batting as b
+-- WHERE yearid = 2016
+-- ORDER BY hr DESC),
 
-SELECT yearid, s1.playerid, hr
-FROM subq1 as s1
-INNER JOIN batting as b
-USING (playerid)
+-- subq2 as (SELECT playerid, MAX(hr) as max_hr
+-- FROM batting as b
+-- GROUP BY playerid
+-- ORDER BY max_hr DESC),
+
+-- subq3 as (SELECT playerid, CAST(REPLACE(finalgame,'-','') as date), 
+-- CAST(REPLACE(debut,'-','') as date),
+-- (CAST(REPLACE(finalgame,'-','') as date) - CAST(REPLACE(debut,'-','') as date))/365 as years_played
+-- FROM people)
+
+
+-- SELECT s1.playerid, CONCAT(namefirst, ' ', namelast), max_hr
+-- FROM subq1 as s1
+-- INNER JOIN subq2 
+-- USING (playerid)
+-- INNER JOIN subq3 as s3
+-- USING (playerid)
+-- INNER JOIN people as p 
+-- USING (playerid)
+-- WHERE max_hr = hr and hr > 0 AND years_played >= 10
 
 
 
@@ -188,11 +204,49 @@ ORDER BY hr DESC),
 subq2 as (SELECT playerid, MAX(hr) as max_hr
 FROM batting as b
 GROUP BY playerid
-ORDER BY max_hr DESC)
+ORDER BY max_hr DESC),
 
-SELECT s1.playerid, max_hr
+subq3 as (SELECT playerid, COUNT(yearid) as years_played
+          FROM batting
+          GROUP BY playerid)
+
+
+SELECT s1.playerid, CONCAT(namefirst, ' ', namelast), max_hr, years_played, yearid
 FROM subq1 as s1
 INNER JOIN subq2 
 USING (playerid)
-WHERE max_hr = hr and hr > 0
+INNER JOIN subq3 as s3
+USING (playerid)
+INNER JOIN people as p 
+USING (playerid)
+WHERE max_hr = hr and hr > 0 AND years_played >= 10
+ORDER BY max_hr DESC
+
+
+
+-- BONUS
+
+SELECT yearid, teamid, SUM(salary) as total_salary, w
+FROM salaries
+INNER JOIN teams as t
+USING(yearid,teamid)
+WHERE yearid >= 2000 AND teamid = 'BAL'
+GROUP BY yearid, teamid,w
+ORDER BY total_salary
+
+WITH subq as (SELECT yearid, ROUND(CAST(AVG(salary) as int),2) as avg_salary
+FROM salaries
+WHERE yearid >= 2000 
+GROUP BY yearid
+ORDER BY yearid)
+
+
+
+
+
+
+
+
+
+
 
