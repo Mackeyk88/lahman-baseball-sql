@@ -167,31 +167,31 @@ ORDER BY full_name
 -- "Jim Leyland"	"Detroit Tigers"	    "AL" 
 
 
--- WITH subq1 as (SELECT playerid, yearid, teamid, lgid, hr
--- FROM batting as b
--- WHERE yearid = 2016
--- ORDER BY hr DESC),
+WITH subq1 as (SELECT playerid, yearid, teamid, lgid, hr
+FROM batting as b
+WHERE yearid = 2016
+ORDER BY hr DESC),
 
--- subq2 as (SELECT playerid, MAX(hr) as max_hr
--- FROM batting as b
--- GROUP BY playerid
--- ORDER BY max_hr DESC),
+subq2 as (SELECT playerid, MAX(hr) as max_hr
+FROM batting as b
+GROUP BY playerid
+ORDER BY max_hr DESC),
 
--- subq3 as (SELECT playerid, CAST(REPLACE(finalgame,'-','') as date), 
--- CAST(REPLACE(debut,'-','') as date),
--- (CAST(REPLACE(finalgame,'-','') as date) - CAST(REPLACE(debut,'-','') as date))/365 as years_played
--- FROM people)
+subq3 as (SELECT playerid, CAST(REPLACE(finalgame,'-','') as date), 
+CAST(REPLACE(debut,'-','') as date),
+(CAST(REPLACE(finalgame,'-','') as date) - CAST(REPLACE(debut,'-','') as date))/365 as years_played
+FROM people)
 
 
--- SELECT s1.playerid, CONCAT(namefirst, ' ', namelast), max_hr
--- FROM subq1 as s1
--- INNER JOIN subq2 
--- USING (playerid)
--- INNER JOIN subq3 as s3
--- USING (playerid)
--- INNER JOIN people as p 
--- USING (playerid)
--- WHERE max_hr = hr and hr > 0 AND years_played >= 10
+SELECT s1.playerid, CONCAT(namefirst, ' ', namelast), max_hr
+FROM subq1 as s1
+INNER JOIN subq2 
+USING (playerid)
+INNER JOIN subq3 as s3
+USING (playerid)
+INNER JOIN people as p 
+USING (playerid)
+WHERE max_hr = hr and hr > 0 AND years_played >= 10
 
 
 
@@ -211,7 +211,7 @@ subq3 as (SELECT playerid, COUNT(yearid) as years_played
           GROUP BY playerid)
 
 
-SELECT s1.playerid, CONCAT(namefirst, ' ', namelast), max_hr, years_played, yearid
+SELECT s1.playerid, CONCAT(namefirst, ' ', namelast), max_hr, years_played, s1.yearid
 FROM subq1 as s1
 INNER JOIN subq2 
 USING (playerid)
@@ -221,6 +221,15 @@ INNER JOIN people as p
 USING (playerid)
 WHERE max_hr = hr and hr > 0 AND years_played >= 10
 ORDER BY max_hr DESC
+
+
+
+
+
+
+
+
+
 
 
 
@@ -234,13 +243,53 @@ WHERE yearid >= 2000 AND teamid = 'BAL'
 GROUP BY yearid, teamid,w
 ORDER BY total_salary
 
-WITH subq as (SELECT yearid, ROUND(CAST(AVG(salary) as int),2) as avg_salary
+WITH subq as (SELECT yearid, ROUND(CAST(AVG(salary) as numeric),0) as avg_salary
+FROM salaries
+WHERE yearid >= 2000 
+GROUP BY yearid
+ORDER BY yearid),
+
+subq2 as (SELECT yearid, MAX(w) as max_wins
+FROM teams
+WHERE yearid >= 2000
+GROUP BY yearid
+ORDER BY yearid),
+
+subq3 as (SELECT yearid, ROUND(AVG(w),0) as avg_wins
+FROM teams
+WHERE yearid >= 2000
+GROUP BY yearid
+ORDER BY yearid),
+
+subq4 as (SELECT yearid, ROUND(CAST(MAX(salary) as int),2) as max_salary
 FROM salaries
 WHERE yearid >= 2000 
 GROUP BY yearid
 ORDER BY yearid)
 
 
+SELECT yearid, avg_salary, max_salary, avg_wins, max_wins
+FROM subq
+INNER JOIN subq2
+USING (yearid)
+INNER JOIN subq3
+USING (yearid)
+INNER JOIN subq4
+USING (yearid)
+
+
+WITH subq as (SELECT yearid, MAX(w) as max_w
+FROM teams
+GROUP BY yearid
+ORDER BY yearid)
+
+SELECT yearid, max_w, salary
+FROM teams as t
+INNER JOIN salaries as s
+USING (yearid,teamid,lgid)
+INNER JOIN subq as s1
+USING (yearid)
+GROUP BY yearid, salary, max_w
 
 
 
@@ -249,4 +298,46 @@ ORDER BY yearid)
 
 
 
+WITH subq1 as (SELECT yearid, ROUND(CAST(AVG(salary) as numeric),0) as avg_salary
+FROM salaries 
+WHERE yearid >= 2000
+GROUP BY yearid
+ORDER BY yearid),
 
+subq2 as (SELECT yearid, 
+ROUND(CAST(avg_salary - LAG(avg_salary) OVER(ORDER BY yearid) as numeric),0) as salary_cap_increase
+FROM subq1
+WHERE yearid >= 2000),
+
+subq3 as (SELECT yearid, MAX(w) as max_wins
+FROM teams         
+WHERE yearid >= 2000
+GROUP BY yearid
+ORDER BY yearid),
+
+subq4 as (SELECT yearid, MAX(salary) as max_salary
+FROM salaries 
+WHERE yearid >= 2000
+GROUP BY yearid
+ORDER BY yearid)
+
+SELECT yearid, salary_cap_increase, max_wins, avg_salary
+FROM subq1
+INNER JOIN subq2
+USING (yearid)
+INNER JOIN subq3
+USING (yearid)
+INNER JOIN subq4
+USING (yearid)
+
+
+SELECT teamid, SUM(salary) as total_salary
+FROM teams
+INNER JOIN salaries
+USING (yearid, teamid,lgid)
+GROUP BY teamid
+ORDER BY total_salary DESC
+
+
+
+SELECT 
